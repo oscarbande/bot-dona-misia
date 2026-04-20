@@ -72,7 +72,7 @@ export default async function handler(req, res) {
         let context = "";
         if (vectorStore) {
             try {
-                const relevantDocs = await vectorStore.similaritySearch(message, 2);
+                const relevantDocs = await vectorStore.similaritySearch(message, 3);
                 context = relevantDocs.map(d => d.pageContent).join("\n\n");
             } catch (e) {
                 context = manualSearch(message, cachedKnowledge);
@@ -81,39 +81,57 @@ export default async function handler(req, res) {
             context = manualSearch(message, cachedKnowledge);
         }
 
-        // 4. Gemini SDK (Conector Oficial)
         let finalReply = "";
         let debugInfo = "";
 
-        if (GEMINI_API_KEY) {
+        const systemPrompt = "Eres Doña Misia, experta en plantas paraguayas y del mundo. Responde de forma amable, corta y tradicional.";
+        const fullPrompt = `Contexto: ${context || "general"}. Pregunta: ${message}`;
+
+        // 4. CEREBRO A: Gemini
+        if (GEMINI_API_KEY && !finalReply) {
             try {
                 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
                 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-                const systemPrompt = "Eres Doña Misia, experta en plantas. Responde de forma amable y tradicional.";
-                const prompt = `Contexto: ${context || "general"}. Pregunta: ${message}`;
-                
-                const result = await model.generateContent([`${systemPrompt}\n\n${prompt}`]);
+                const result = await model.generateContent([`${systemPrompt}\n\n${fullPrompt}`]);
                 const response = await result.response;
                 finalReply = response.text().trim();
+                console.log("Respuesta de Gemini exitosa");
             } catch (error) {
-                console.error("Gemini SDK Error:", error);
-                debugInfo = `(Error SDK: ${error.message.substring(0, 50)})`;
+                console.error("Gemini falló:", error.message);
+                debugInfo += `[G: ${error.message.substring(0, 30)}] `;
             }
-        } else {
-            debugInfo = "(Error: No se detectó GEMINI_API_KEY)";
         }
 
-        // 5. Salida
+        // 5. CEREBRO B: Hugging Face (Fallback de IA)
+        if (HF_TOKEN && !finalReply) {
+            try {
+                const hf = new HfInference(HF_TOKEN);
+                const response = await hf.textGeneration({
+                    model: "Qwen/Qwen2.5-7B-Instruct",
+                    inputs: `<|im_start|>system\n${systemPrompt}<|im_end|>\n<|im_start|>user\n${fullPrompt}<|im_end|>\n<|im_start|>assistant\n`,
+                    parameters: { max_new_tokens: 250, temperature: 0.7 }
+                });
+                if (response && response.generated_text) {
+                    finalReply = response.generated_text.split("assistant\n")[1]?.trim() || response.generated_text.trim();
+                    console.log("Respuesta de Hugging Face exitosa");
+                }
+            } catch (error) {
+                console.error("Hugging Face falló:", error.message);
+                debugInfo += `[HF: ${error.message.substring(0, 30)}] `;
+            }
+        }
+
+        // 6. CEREBRO C: Salida de Emergencia (Manual)
         if (!finalReply) {
             finalReply = context 
-                ? `Soy Doña Misia. Mi conexión IA está fallando ${debugInfo}, pero en mis libros dice: \n\n${context}`
-                : `Hola, soy Doña Misia. Hoy estoy un poco desconectada ${debugInfo}, vuelve a intentarlo en un ratito.`;
+                ? `Soy Doña Misia. Mis conexiones IA están fallando ${debugInfo}, pero aquí tengo mis apuntes:\n\n${context}`
+                : `Hola, soy Doña Misia. Hoy mis conexiones están un poco lentas ${debugInfo}, vuelve en un ratito.`;
         }
 
         return res.status(200).json({ response: finalReply });
 
     } catch (e) {
-        return res.status(500).json({ response: "Error interno de Doña Misia." });
+        console.error("Error Global:", e);
+        return res.status(500).json({ response: "Error interno del sistema de Doña Misia." });
     }
 }
