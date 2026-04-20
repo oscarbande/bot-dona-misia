@@ -3,8 +3,9 @@ import path from 'path';
 import { HfInference } from '@huggingface/inference';
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { Document } from "@langchain/core/documents";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Lógica de búsqueda manual con normalización mejorada
+// Lógica de búsqueda manual
 function normalize(text) {
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     const { message } = req.body;
-    const HF_TOKEN = process.env.HF_TOKEN || process.env.SUPERBOT || process.env.TOKEN_IA;
+    const HF_TOKEN = process.env.HF_TOKEN || process.env.TOKEN_IA;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
     try {
@@ -46,8 +47,6 @@ export default async function handler(req, res) {
             const dataPath = path.join(process.cwd(), 'informacion.txt');
             if (fs.existsSync(dataPath)) {
                 cachedKnowledge = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-            } else {
-                console.error("CRÍTICO: No se encontró informacion.txt");
             }
         }
 
@@ -64,9 +63,8 @@ export default async function handler(req, res) {
                     embedQuery: (text) => hf.featureExtraction({ model: "sentence-transformers/all-MiniLM-L6-v2", inputs: text })
                 };
                 vectorStore = await MemoryVectorStore.fromDocuments(docs, customEmbeddings);
-                console.log("RAG inicializado correctamente");
             } catch (e) {
-                console.warn("RAG omitido por error:", e.message);
+                console.warn("RAG off:", e.message);
             }
         }
 
@@ -74,71 +72,48 @@ export default async function handler(req, res) {
         let context = "";
         if (vectorStore) {
             try {
-                const relevantDocs = await vectorStore.similaritySearch(message, 3);
+                const relevantDocs = await vectorStore.similaritySearch(message, 2);
                 context = relevantDocs.map(d => d.pageContent).join("\n\n");
             } catch (e) {
-                console.warn("Búsqueda vectorial falló, usando manual");
                 context = manualSearch(message, cachedKnowledge);
             }
         } else {
             context = manualSearch(message, cachedKnowledge);
         }
 
-        // 4. Inteligencia Artificial (Gemini)
+        // 4. Gemini SDK (Conector Oficial)
         let finalReply = "";
+        let debugInfo = "";
+
         if (GEMINI_API_KEY) {
             try {
-                const isGreeting = (message.length < 15 && /hola|buenos|buenas|que tal|como estás/i.test(normalize(message)));
-                
-                const systemPrompt = "Eres Doña Misia, una experta en plantas medicinales de Paraguay y el mundo. Hablas de forma amable, cercana y tradicional.";
-                const contextPrompt = context 
-                    ? `Usa esta información para responder: ${context}` 
-                    : "Responde de forma general sobre plantas medicinales si no tienes contexto específico.";
-                
-                const fullPrompt = isGreeting 
-                    ? "Saluda amablemente como Doña Misia y ofrece tu ayuda con plantas medicinales."
-                    : `${systemPrompt}\n\nContexto: ${contextPrompt}\n\nPregunta del usuario: ${message}`;
+                const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+                const systemPrompt = "Eres Doña Misia, experta en plantas. Responde de forma amable y tradicional.";
+                const prompt = `Contexto: ${context || "general"}. Pregunta: ${message}`;
                 
-                const response = await fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: fullPrompt }] }],
-                        generationConfig: { temperature: 0.7, maxOutputTokens: 500 }
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-                        finalReply = data.candidates[0].content.parts[0].text.trim();
-                    }
-                } else {
-                    const errorBody = await response.text();
-                    console.error(`Gemini API Error (${response.status}):`, errorBody);
-                }
+                const result = await model.generateContent([`${systemPrompt}\n\n${prompt}`]);
+                const response = await result.response;
+                finalReply = response.text().trim();
             } catch (error) {
-                console.error("Error de red llamando a Gemini:", error.message);
+                console.error("Gemini SDK Error:", error);
+                debugInfo = `(Error SDK: ${error.message.substring(0, 50)})`;
             }
         } else {
-            console.warn("ADVERTENCIA: GEMINI_API_KEY no detectada");
+            debugInfo = "(Error: No se detectó GEMINI_API_KEY)";
         }
 
-        // 5. Salida de Emergencia (Si Gemini falla pero tenemos contexto)
+        // 5. Salida
         if (!finalReply) {
-            if (context) {
-                finalReply = `Soy Doña Misia. Mi conexión con la nube está un poco lenta, pero en mis libros encontré esto sobre tu consulta:\n\n${context}\n\n¿Te sirve esta información, m'hijo?`;
-            } else {
-                finalReply = "Hola, soy Doña Misia. Por ahora mis libritos están cerrados y no puedo responderte bien, pero vuelve a intentarlo en un ratito, ¿sí?";
-            }
+            finalReply = context 
+                ? `Soy Doña Misia. Mi conexión IA está fallando ${debugInfo}, pero en mis libros dice: \n\n${context}`
+                : `Hola, soy Doña Misia. Hoy estoy un poco desconectada ${debugInfo}, vuelve a intentarlo en un ratito.`;
         }
 
         return res.status(200).json({ response: finalReply });
 
     } catch (e) {
-        console.error("FALLO GENERAL DEL HANDLER:", e);
-        return res.status(500).json({ response: "Lo siento, Doña Misia tiene un problema técnico ahora mismo." });
+        return res.status(500).json({ response: "Error interno de Doña Misia." });
     }
 }
