@@ -43,7 +43,7 @@ function manualSearch(query) {
 async function ensureInitialized() {
     if (plantKnowledge.length === 0) {
         try {
-            const dataPath = path.join(process.cwd(), 'informacion.txt');
+            const dataPath = path.join(process.cwd(), 'public', 'informacion.txt');
             if (fs.existsSync(dataPath)) {
                 plantKnowledge = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
             }

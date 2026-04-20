@@ -1,12 +1,7 @@
 {
   "name": "plantas-medicinales-dona-misia",
   "version": "1.0.0",
-  "description": "App de plantas medicinales con RAG y Hugging Face",
-  "main": "server.js",
   "type": "module",
-  "scripts": {
-    "start": "node server.js"
-  },
   "dependencies": {
     "@huggingface/inference": "^2.6.4",
     "@google/generative-ai": "^0.3.0",

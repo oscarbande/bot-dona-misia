@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f6d365;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fda085;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#grad)" rx="20"/>
+  <text x="50%" y="55%" font-size="150" text-anchor="middle" dominant-baseline="middle">🌼</text>
+  <text x="50%" y="85%" font-family="Arial, sans-serif" font-weight="bold" font-size="40" fill="#ffffff" text-anchor="middle" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Manzanilla</text>
+</svg>
