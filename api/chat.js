@@ -47,7 +47,7 @@ export default async function handler(req, res) {
     try {
         // 1. Cargar conocimiento (Caching en la instancia Lambda)
         if (cachedKnowledge.length === 0) {
-            const dataPath = path.join(process.cwd(), 'public', 'informacion.txt');
+            const dataPath = path.join(process.cwd(), 'informacion.txt');
             if (fs.existsSync(dataPath)) {
                 cachedKnowledge = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
             }
