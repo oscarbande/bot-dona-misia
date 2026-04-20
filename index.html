@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plantas Medicinales Doña Misia</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fa-solid fa-leaf"></i> Doña Misia
+        </div>
+        <ul class="nav-links">
+            <li><a href="#inicio">Inicio</a></li>
+            <li><a href="#catalogo">Catálogo</a></li>
+            <li><a href="#" id="openChatBtn">Chat</a></li>
+        </ul>
+    </nav>
+
+    <!-- Hero Section -->
+    <header id="inicio" class="hero">
+        <div class="hero-content">
+            <h1>Sanación a Través de <br>la <span>Naturaleza Mágica</span></h1>
+            <p>El botiquín salvaje de la abuela, ahora digital. Explora fotos reales e interactivas de nuestras plantas
+                curativas. Voltea las cartas para aprender sus secretos más profundos y conversa con el Bot de Doña
+                Misia en cualquier momento.</p>
+            <a href="#catalogo" class="btn btn-primary">Descubrir Ahora <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <div class="hero-image">
+            <div class="blob"></div>
+            <!-- Real Hero Image -->
+            <img src="img/hero.jpg"
+                alt="Plantas Místicas" class="hero-img-real">
+        </div>
+    </header>
+
+    <!-- Catalog Section -->
+    <section id="catalogo" class="catalog-section">
+        <div class="section-header">
+            <h2>Nuestras Plantas Destacadas</h2>
+            <p>Conoce y aprende sobre los beneficios y propiedades curativas que nos regala la madre tierra
+        </div>
+
+        <!-- Grid dynamically populated by JS -->
+        <div id="plantsGrid" class="plants-grid">
+            <!-- Plant Cards will be injected here -->
+        </div>
+    </section>
+
+    <!-- Chatbot Widget -->
+    <div id="chatbot" class="chatbot-container hidden">
+        <div class="chatbot-header">
+            <div class="bot-info">
+                <div class="bot-avatar"><i class="fa-solid fa-robot"></i></div>
+                <div>
+                    <h3>Bot Doña Misia</h3>
+                    <span class="status">En línea</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="downloadPdfBtn" class="download-btn" title="Descargar Historial en PDF"><i class="fa-solid fa-file-pdf"></i></button>
+                <button id="closeChat" class="close-btn"><i class="fa-solid fa-times"></i></button>
+            </div>
+        </div>
+
+        <div id="chatMessages" class="chat-messages">
+            <div class="message bot">
+                <div class="message-content">
+                    ¡Hola! Soy el Bot de Doña Misia 🌿. Puedo ayudarte con información sobre plantas medicinales, en
+                    especial la Sábila, Marba y Clavellina. ¿Sobre cuál te gustaría aprender hoy?
+                </div>
+            </div>
+        </div>
+
+        <form id="chatForm" class="chat-input-area">
+            <input type="text" id="userInput" placeholder="Escribe tu pregunta aquí..." autocomplete="off" required>
+            <button type="submit" class="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+        </form>
+    </div>
+
+    <!-- Floating Action Button for Chat -->
+    <button id="fabChat" class="fab-chat">
+        <i class="fa-solid fa-comment-dots"></i>
+    </button>
+
+    <!-- html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
